@@ -75,6 +75,14 @@ unsigned int extractNumber(std::string& data)
 
     return 0;
 }
+// replaceWithAdd(file_data, elements[i], "/Rotate " + std::to_string(user_degrees));
+void replaceWithAdd(std::string& data, const std::string& to_replace, const std::string& replace_with)
+{
+    std::string placeholder = "/[({PDF_PDF_PLACEHOLDER})]";
+
+    replaceAllMatches(data, to_replace, replace_with + placeholder);
+    replaceAllMatches(data, placeholder, to_replace);
+}
 
 int main(int argc, char** argv)
 {
@@ -146,13 +154,27 @@ int main(int argc, char** argv)
         out.close();
         return 0;
     }
-    replaceAllMatches(file_data, "/Contents", "/Rotate " + std::to_string(user_degrees) + "/[({PDF_ROTATE_PDF_CONTENTS_PLACEHOLDER})]");
-    replaceAllMatches(file_data, "/[({PDF_ROTATE_PDF_CONTENTS_PLACEHOLDER})]", "/Contents");
+
+    const char* elements[6] = {
+        "/Contents", "/Type/Page", "/Type /Page ", "/MediaBox", "/Resources", "/Parent"
+    };
+
+    for (int i = 0; i < 6; ++i)
+    {
+        if (file_data.find(elements[i]) != std::string::npos)
+        {
+            replaceWithAdd(file_data, elements[i], "/Rotate " + std::to_string(user_degrees));
+            break;
+        }
+    }
     out << file_data;
     out.close();
 }
 
 /*
+* //replaceAllMatches(file_data, "/Contents", "/Rotate " + std::to_string(user_degrees) + "/[({PDF_ROTATE_PDF_CONTENTS_PLACEHOLDER})]");
+    //replaceAllMatches(file_data, "/[({PDF_ROTATE_PDF_CONTENTS_PLACEHOLDER})]", "/Contents");
+* 
     // if statement in while loop
     start_pos = line.find("/Rotate");
     if (start_pos != std::string::npos)
