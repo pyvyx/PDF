@@ -59,12 +59,21 @@ unsigned int extractNumber(std::string& data)
         case '7':
         case '8':
         case '9':
+        case '-':
+            if (*i == '-' && number_s.size() == 1)
+            {
+                number_s[0] = *i;
+                number_s += "0";
+                break;
+            }
             number_s += *i;
             break;
         default:
             return std::stoi(number_s);
         }
     }
+
+    return 0;
 }
 
 int main(int argc, char** argv)
@@ -113,24 +122,48 @@ int main(int argc, char** argv)
         return 0;
     }
 
-    // Check if theres already a /Rotate statement
+    // Convert file content to string
     std::stringstream ss;
     ss << in.rdbuf();
     std::string file_data = ss.str();
+    in.close();
 
+    // Check if theres already a /Rotate statement
     size_t start_pos = file_data.find("/Rotate");
     if (start_pos != std::string::npos)
     {
-        std::string substring = splitStringByChar(file_data.substr(start_pos), ' ');
+        while (start_pos != std::string::npos)
+        {
+            std::string substring = splitStringByChar(file_data.substr(start_pos), ' ');
+            substring = ltrim(substring);
+
+            int rotation_number = extractNumber(substring);
+            replaceAllMatches(file_data, "/Rotate " + std::to_string(rotation_number), "/[({PDF_ROTATE_PDF_ROTATION_PLACEHOLDER})] " + std::to_string(user_degrees + rotation_number));
+            start_pos = file_data.find("/Rotate");
+        }
+        replaceAllMatches(file_data, "/[({PDF_ROTATE_PDF_ROTATION_PLACEHOLDER})]", "/Rotate");
+        out << file_data;
+        out.close();
+        return 0;
+    }
+    replaceAllMatches(file_data, "/Contents", "/Rotate " + std::to_string(user_degrees) + "/[({PDF_ROTATE_PDF_CONTENTS_PLACEHOLDER})]");
+    replaceAllMatches(file_data, "/[({PDF_ROTATE_PDF_CONTENTS_PLACEHOLDER})]", "/Contents");
+    out << file_data;
+    out.close();
+}
+
+/*
+    // if statement in while loop
+    start_pos = line.find("/Rotate");
+    if (start_pos != std::string::npos)
+    {
+        std::string substring = splitStringByChar(line.substr(start_pos), ' ');
         substring = ltrim(substring);
 
         int rotation_number = extractNumber(substring);
-        replaceAllMatches(file_data, "/Rotate " + std::to_string(rotation_number), "/Rotate " + std::to_string(user_degrees + rotation_number));
-
-        out << file_data;
-        in.close();
-        out.close();
-        return 0;
+        replaceAllMatches(line, "/Rotate " + std::to_string(rotation_number), "/Rotate " + std::to_string(user_degrees + rotation_number));
+        out << line << std::endl;
+        continue;
     }
 
     in.clear();
@@ -140,27 +173,16 @@ int main(int argc, char** argv)
     std::string line;
     while (std::getline(in, line))
     {
-        size_t start_pos = line.find("/Contents");
+        start_pos = line.find("/Contents");
         if (start_pos != std::string::npos)
         {
-            start_pos = line.find("/Rotate");
-            if (start_pos != std::string::npos)
-            {
-                std::string substring = splitStringByChar(line.substr(start_pos), ' ');
-                substring = ltrim(substring);
-
-                int rotation_number = extractNumber(substring);
-                replaceAllMatches(line, "/Rotate " + std::to_string(rotation_number), "/Rotate " + std::to_string(user_degrees + rotation_number));
-                out << line << std::endl;
-                continue;
-            }
             size_t start_pos = line.find("/Contents");
             line.replace(start_pos, 9, "/Rotate " + std::to_string(user_degrees) + "/Contents");
         }
-    
+
         out << line << std::endl;
     }
 
     in.close();
     out.close();
-}
+*/
